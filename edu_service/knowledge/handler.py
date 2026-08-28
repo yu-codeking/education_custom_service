@@ -5,16 +5,15 @@ from edu_service.knowledge.responder import KnowledgeResponder
 
 
 class KnowledgeHandler:
-
-    def __init__(self,
-                 knowledge_intents: dict[str, KnowledgeIntent],
-                 knowledge_register):
+    def __init__(
+        self, knowledge_intents: dict[str, KnowledgeIntent], knowledge_register
+    ):
         self.knowledge_intents = knowledge_intents
         self.knowledge_register = knowledge_register
 
-    async def handle(self,
-                     intents: list[str],
-                     dialogue_state: DialogueState) -> list[BotMessage]:
+    async def handle(
+        self, intents: list[str], dialogue_state: DialogueState
+    ) -> list[BotMessage]:
         """
         职责：知识轨道处理器——按意图逐个调用对应 Provider 检索，再汇总生成自然语言回复
         Args:

@@ -9,9 +9,10 @@
 
 
 """
+
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
-from dataclasses import dataclass
 
 
 class MessageType(Enum):
@@ -24,6 +25,7 @@ class FocusedObject:
     """
     消息类型是对象
     """
+
     id: str  # 商品编号 or  订单编号
     title: str  # 商品标题 or  订单标题
     type: str  # 点击的商品卡片 type:"product" 点击的是订单卡片 type:"order"
@@ -41,7 +43,7 @@ class FocusedObject:
             "id": self.id,
             "title": self.title,
             "type": self.type,
-            "attributes": self.attributes
+            "attributes": self.attributes,
         }
 
     @classmethod
@@ -52,10 +54,10 @@ class FocusedObject:
         :return:
         """
         return cls(
-            id=data['id'],
-            title=data['title'],
-            type=data['type'],
-            attributes=data['attributes']
+            id=data["id"],
+            title=data["title"],
+            type=data["type"],
+            attributes=data["attributes"],
         )
 
 
@@ -64,10 +66,13 @@ class UserMessage:
     """
     用户角色消息的领域数据模型（业务代码直接操作的：不包括api路由层）
     """
+
     sender_id: str  # 会话ID:前端会带过来
     message_id: str  # 消息ID:自己生成
     type: MessageType  # 消息类型：文本消息类型以及对象消息类型【枚举】
-    user_id: str | None = None  # 当前服务的学员身份（edu-api 的 X-User-Id），首个非空值会被记住到对话状态
+    user_id: str | None = (
+        None  # 当前服务的学员身份（edu-api 的 X-User-Id），首个非空值会被记住到对话状态
+    )
     text: str | None = None  # 文本类型消息的内容
     object: FocusedObject | None = None  # 对象类型消息的内容
 
@@ -78,18 +83,22 @@ class UserMessage:
             "type": self.type.value,
             "user_id": self.user_id,
             "text": self.text,
-            "object": FocusedObject.to_dict(self.object) if self.object is not None else None
+            "object": FocusedObject.to_dict(self.object)
+            if self.object is not None
+            else None,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "UserMessage":
         return cls(
-            sender_id=data['sender_id'],
-            message_id=data['message_id'],
-            type=MessageType(data['type']),
-            user_id=data.get('user_id'),
-            text=data['text'],
-            object=FocusedObject.from_dict(data['object']) if data['object'] is not None else None
+            sender_id=data["sender_id"],
+            message_id=data["message_id"],
+            type=MessageType(data["type"]),
+            user_id=data.get("user_id"),
+            text=data["text"],
+            object=FocusedObject.from_dict(data["object"])
+            if data["object"] is not None
+            else None,
         )
 
 
@@ -101,14 +110,18 @@ class BotMessage:
     def to_dict(self) -> dict[str, Any]:
         return {
             "text": self.text,
-            "object": FocusedObject.to_dict(self.object) if self.object is not None else None
+            "object": FocusedObject.to_dict(self.object)
+            if self.object is not None
+            else None,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "BotMessage":
         return cls(
-            text=data['text'],
-            object=FocusedObject.from_dict(data['object']) if data['object'] is not None else None
+            text=data["text"],
+            object=FocusedObject.from_dict(data["object"])
+            if data["object"] is not None
+            else None,
         )
 
 

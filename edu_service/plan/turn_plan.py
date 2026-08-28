@@ -12,7 +12,9 @@ class TaskTurnPlan:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TaskTurnPlan":
         return cls(
-            commands=[Command.from_dict(command_dict) for command_dict in data['commands']]
+            commands=[
+                Command.from_dict(command_dict) for command_dict in data["commands"]
+            ]
         )
 
 
@@ -22,9 +24,7 @@ class KnowledgeTurnPlan:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "KnowledgeTurnPlan":
-        return cls(
-            intents=data['intents']
-        )
+        return cls(intents=data["intents"])
 
 
 @dataclass(slots=True)
@@ -33,9 +33,7 @@ class ChitChatTurnPlan:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ChitChatTurnPlan":
-        return cls(
-            chat=data['chat']
-        )
+        return cls(chat=data["chat"])
 
 
 @dataclass(slots=True)
@@ -47,14 +45,19 @@ class TurnPlan:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TurnPlan":
         return cls(
-            task=TaskTurnPlan.from_dict(data['task']) if data.get('task') is not None else None,
-            knowledge=KnowledgeTurnPlan.from_dict(data['knowledge']) if data.get('knowledge') is not None else None,
-            chitchat=ChitChatTurnPlan.from_dict(data['chitchat']) if data.get('chitchat') is not None else None
+            task=TaskTurnPlan.from_dict(data["task"])
+            if data.get("task") is not None
+            else None,
+            knowledge=KnowledgeTurnPlan.from_dict(data["knowledge"])
+            if data.get("knowledge") is not None
+            else None,
+            chitchat=ChitChatTurnPlan.from_dict(data["chitchat"])
+            if data.get("chitchat") is not None
+            else None,
         )
 
-
-    def  activated_tracks(self):
-        activated_tracks:list[str]=[]
+    def activated_tracks(self):
+        activated_tracks: list[str] = []
 
         if self.task is not None:
             activated_tracks.append("task")
@@ -63,7 +66,7 @@ class TurnPlan:
         if self.chitchat is not None:
             activated_tracks.append("chitchat")
 
-        return  activated_tracks
+        return activated_tracks
 
 
 class ClarifyReason(Enum):
@@ -78,9 +81,7 @@ class ClarifyReason(Enum):
     UNKNOWN_TASK_FLOW = "unknown_task_flow"
 
 
-
 @dataclass(slots=True)
 class TurnPlanValidatedResult:
     valid: bool
-    reason: ClarifyReason | None=None
-
+    reason: ClarifyReason | None = None

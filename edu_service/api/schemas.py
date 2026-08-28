@@ -2,6 +2,7 @@
 定义接口数据模型：和前端进行交互
 继承BaseModel:在运行期间完成类型的校验和类型的转换
 """
+
 from typing import Any
 
 from pydantic import BaseModel
@@ -23,8 +24,11 @@ class ChatRequest(BaseModel):
     """
     聊天请求接口数据模型
     """
+
     sender_id: str  # 会话ID（对话状态持久化的主键）
-    user_id: str | None = None  # 当前服务的学员身份（edu-api 的 X-User-Id），首轮传入后会被记住
+    user_id: str | None = (
+        None  # 当前服务的学员身份（edu-api 的 X-User-Id），首轮传入后会被记住
+    )
     stream: bool = False  # 兼容字段：流式请走 /api/chat/stream
     text: str | None = None
     object: ChatObject | None = None
@@ -34,6 +38,7 @@ class ChatResponse(BaseModel):
     """
     聊天响应接口数据模型
     """
+
     message_id: str
     messages: list[ChatBotMessage]
     session_state: "SessionState | None" = None  # 本轮处理后的会话状态快照
@@ -41,6 +46,7 @@ class ChatResponse(BaseModel):
 
 class SessionCreateRequest(BaseModel):
     """创建新会话请求"""
+
     user_id: str | None = None  # 模拟学员身份（可选）
 
 
@@ -57,6 +63,7 @@ class TaskContextView(BaseModel):
 
 class SessionState(BaseModel):
     """当前会话状态视图：激活流程 / 已收集槽位 / 暂停栈"""
+
     session_id: str
     user_id: str | None = None
     current_session_id: str | None = None

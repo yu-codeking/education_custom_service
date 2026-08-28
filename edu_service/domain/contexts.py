@@ -5,7 +5,8 @@
 系统流程上下文:继承思想+字典的映射
 
 """
-from dataclasses import dataclass, field, asdict
+
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
@@ -23,18 +24,12 @@ class TaskContext:
     slots: dict[str, Any] = field(default_factory=dict)  # 槽位的信息
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "flow_id": self.flow_id,
-            "step_id": self.step_id,
-            "slots": self.slots
-        }
+        return {"flow_id": self.flow_id, "step_id": self.step_id, "slots": self.slots}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TaskContext":
         return cls(
-            flow_id=data['flow_id'],
-            step_id=data['step_id'],
-            slots=data['slots']
+            flow_id=data["flow_id"], step_id=data["step_id"], slots=data["slots"]
         )
 
 
@@ -51,11 +46,11 @@ class SystemContext:
     step_id: str
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)  # type: ignore
+        return asdict(self) 
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SystemContext":
-        flow_id = data['flow_id']
+        flow_id = data["flow_id"]
         clz = SYSTEM_CONTEXT_TO_CLASS[flow_id]
         return clz(**data)
 
@@ -103,5 +98,5 @@ SYSTEM_CONTEXT_TO_CLASS: dict[str, type[SystemContext]] = {
     "system_task_resumed": SystemTaskResumedContext,
     "system_task_canceled": SystemTaskCanceledContext,
     "system_collect_information": SystemCollectInformationContext,
-    "system_task_resume_failed": SystemTaskResumeFailedContext
+    "system_task_resume_failed": SystemTaskResumeFailedContext,
 }

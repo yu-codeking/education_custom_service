@@ -1,28 +1,34 @@
 """
 定义路由：聊天接口（非流式 + SSE 流式）与会话管理接口
 """
+
 import asyncio
 import json
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
+from edu_service.api.dependencies import DialogueStateServiceDep
 from edu_service.api.schemas import (
-    ChatResponse,
-    ChatRequest,
     ChatBotMessage,
     ChatObject,
+    ChatRequest,
+    ChatResponse,
     HistoryMessage,
-    SessionCreateRequest,
     SessionCreatedResponse,
+    SessionCreateRequest,
     SessionMessagesResponse,
     SessionState,
     TaskContextView,
 )
 from edu_service.domain.contexts import TaskContext
-from edu_service.domain.messages import UserMessage, ProcessedResult, MessageType, FocusedObject
-from edu_service.api.dependencies import DialogueStateServiceDep
+from edu_service.domain.messages import (
+    FocusedObject,
+    MessageType,
+    ProcessedResult,
+    UserMessage,
+)
 from edu_service.domain.state import DialogueState
 
 router = APIRouter()
@@ -32,8 +38,7 @@ router = APIRouter()
 
 
 @router.post("/api/chat", response_model=ChatResponse)
-async def chat_endpoint(chat_request: ChatRequest,
-                        service: DialogueStateServiceDep):
+async def chat_endpoint(chat_request: ChatRequest, service: DialogueStateServiceDep):
     # 1.将接口数据模型转成领域数据模型
     user_message = _build_user_message(chat_request)
 
@@ -51,8 +56,9 @@ async def chat_endpoint(chat_request: ChatRequest,
 
 
 @router.post("/api/chat/stream")
-async def chat_stream_endpoint(chat_request: ChatRequest,
-                               service: DialogueStateServiceDep):
+async def chat_stream_endpoint(
+    chat_request: ChatRequest, service: DialogueStateServiceDep
+):
     """
     SSE 流式响应：meta -> delta(逐段) -> object(卡片) -> done(完整消息+会话状态快照) / error
     """
@@ -83,18 +89,23 @@ async def _stream_chat(chat_request: ChatRequest, service: DialogueStateServiceD
             text = bot_message.text or ""
             step = 6
             for index in range(0, len(text), step):
-                yield _sse("delta", {"text": text[index:index + step]})
+                yield _sse("delta", {"text": text[index : index + step]})
                 await asyncio.sleep(0.02)
             if bot_message.object is not None:
                 yield _sse("object", {"object": _object_payload(bot_message.object)})
 
         # 4. done 事件：完整回复 + 最新会话状态
         dialogue_state = await service.load_state(session_id)
-        yield _sse("done", {
-            "message_id": processed_result.message_id,
-            "messages": [_message_payload(message) for message in processed_result.messages],
-            "session_state": _build_session_state(dialogue_state).model_dump(),
-        })
+        yield _sse(
+            "done",
+            {
+                "message_id": processed_result.message_id,
+                "messages": [
+                    _message_payload(message) for message in processed_result.messages
+                ],
+                "session_state": _build_session_state(dialogue_state).model_dump(),
+            },
+        )
     except Exception as error:  # 单次处理失败不影响服务可用性，错误通过 SSE 事件返回
         yield _sse("error", {"message": f"本次处理失败，请稍后重试：{error}"})
 
@@ -111,7 +122,9 @@ def _build_user_message(chat_request: ChatRequest) -> UserMessage:
     return UserMessage(
         sender_id=chat_request.sender_id,
         message_id=str(uuid.uuid4().hex),
-        type=MessageType.OBJECT if chat_request.object is not None else MessageType.TEXT,
+        type=MessageType.OBJECT
+        if chat_request.object is not None
+        else MessageType.TEXT,
         user_id=chat_request.user_id,
         text=chat_request.text,
         object=FocusedObject(
@@ -119,13 +132,15 @@ def _build_user_message(chat_request: ChatRequest) -> UserMessage:
             type=chat_request.object.type,
             title=chat_request.object.title,
             attributes=chat_request.object.attributes,
-        ) if chat_request.object is not None else None
+        )
+        if chat_request.object is not None
+        else None,
     )
 
 
 def _build_chat_response(processed_result: ProcessedResult) -> ChatResponse:
     """
-     职责：处理后的领域数据模型转成接口数据模型
+    职责：处理后的领域数据模型转成接口数据模型
     """
 
     return ChatResponse(
@@ -136,14 +151,16 @@ def _build_chat_response(processed_result: ProcessedResult) -> ChatResponse:
                 object=_interface_object(bot_message.object),
             )
             for bot_message in processed_result.messages
-        ]
+        ],
     )
 
 
 def _interface_object(object: FocusedObject | None) -> ChatObject | None:
     if object is None:
         return None
-    return ChatObject(id=object.id, type=object.type, title=object.title, attributes=object.attributes)
+    return ChatObject(
+        id=object.id, type=object.type, title=object.title, attributes=object.attributes
+    )
 
 
 def _object_payload(object: FocusedObject) -> dict:
@@ -166,8 +183,9 @@ def _message_payload(bot_message) -> dict:
 
 
 @router.post("/api/sessions", response_model=SessionCreatedResponse)
-async def create_session(create_request: SessionCreateRequest,
-                         service: DialogueStateServiceDep):
+async def create_session(
+    create_request: SessionCreateRequest, service: DialogueStateServiceDep
+):
     """创建新会话：生成 session_id 并初始化持久化状态（支持后续会话恢复）"""
     session_id = uuid.uuid4().hex
     await service.load_state(session_id, ensure=True, user_id=create_request.user_id)
@@ -175,16 +193,16 @@ async def create_session(create_request: SessionCreateRequest,
 
 
 @router.get("/api/sessions/{session_id}/state", response_model=SessionState)
-async def get_session_state(session_id: str,
-                            service: DialogueStateServiceDep):
+async def get_session_state(session_id: str, service: DialogueStateServiceDep):
     """获取当前会话状态：激活的任务流程、已收集槽位、暂存任务栈"""
     dialogue_state = await service.load_state(session_id)
     return _build_session_state(dialogue_state)
 
 
-@router.get("/api/sessions/{session_id}/messages", response_model=SessionMessagesResponse)
-async def get_session_messages(session_id: str,
-                               service: DialogueStateServiceDep):
+@router.get(
+    "/api/sessions/{session_id}/messages", response_model=SessionMessagesResponse
+)
+async def get_session_messages(session_id: str, service: DialogueStateServiceDep):
     """获取会话历史消息（跨轮次）"""
     dialogue_state = await service.load_state(session_id)
 
@@ -193,17 +211,34 @@ async def get_session_messages(session_id: str,
         for turn in session.turns:
             user_message = turn.user_message
             if user_message.type is MessageType.TEXT:
-                messages.append(HistoryMessage(
-                    role="user", type="text", text=user_message.text, turn_id=turn.turn_id))
+                messages.append(
+                    HistoryMessage(
+                        role="user",
+                        type="text",
+                        text=user_message.text,
+                        turn_id=turn.turn_id,
+                    )
+                )
             elif user_message.object is not None:
-                messages.append(HistoryMessage(
-                    role="user", type="object",
-                    object=_interface_object(user_message.object), turn_id=turn.turn_id))
+                messages.append(
+                    HistoryMessage(
+                        role="user",
+                        type="object",
+                        object=_interface_object(user_message.object),
+                        turn_id=turn.turn_id,
+                    )
+                )
 
             for bot_message in turn.bot_messages:
-                messages.append(HistoryMessage(
-                    role="bot", type="text", text=bot_message.text,
-                    object=_interface_object(bot_message.object), turn_id=turn.turn_id))
+                messages.append(
+                    HistoryMessage(
+                        role="bot",
+                        type="text",
+                        text=bot_message.text,
+                        object=_interface_object(bot_message.object),
+                        turn_id=turn.turn_id,
+                    )
+                )
 
     return SessionMessagesResponse(session_id=session_id, messages=messages)
 
@@ -219,10 +254,16 @@ def _task_context_view(task_context: TaskContext | None) -> TaskContextView | No
 
 
 def _build_session_state(dialogue_state: DialogueState) -> SessionState:
-    system_flow_id = (dialogue_state.active_system_task.flow_id
-                      if dialogue_state.active_system_task is not None else None)
-    focused_object_dict = (dialogue_state.focused_object.to_dict()
-                           if dialogue_state.focused_object is not None else None)
+    system_flow_id = (
+        dialogue_state.active_system_task.flow_id
+        if dialogue_state.active_system_task is not None
+        else None
+    )
+    focused_object_dict = (
+        dialogue_state.focused_object.to_dict()
+        if dialogue_state.focused_object is not None
+        else None
+    )
 
     return SessionState(
         session_id=dialogue_state.sender_id,
@@ -231,7 +272,10 @@ def _build_session_state(dialogue_state: DialogueState) -> SessionState:
         active_task=_task_context_view(dialogue_state.active_task),
         active_system_task_flow_id=system_flow_id,
         paused_tasks=[
-            view for view in (_task_context_view(paused) for paused in dialogue_state.paused_tasks)
+            view
+            for view in (
+                _task_context_view(paused) for paused in dialogue_state.paused_tasks
+            )
             if view is not None
         ],
         focused_object=focused_object_dict,

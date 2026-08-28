@@ -3,6 +3,7 @@
 定义HTTP客户端(异步)
 
 """
+
 import asyncio
 
 from httpx import AsyncClient
@@ -23,18 +24,21 @@ async def disposed_http_client():
     释放http_client资源
     :return:
     """
+    assert http_client is not None
     await http_client.aclose()
 
 
 async def main_test():
     init_http_client()
-
-    response = await http_client.get(url="http://192.168.200.155:18081/orders/A20260408002")
+    assert http_client is not None
+    response = await http_client.get(
+        url="http://192.168.200.155:18081/orders/A20260408002"
+    )
 
     print(response.json())
-    data= response.json()['data']
+    data = response.json()["data"]
     print(data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main_test())

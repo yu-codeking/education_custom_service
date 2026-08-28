@@ -2,7 +2,7 @@ import json
 from typing import Any
 
 from edu_service.domain.state import DialogueState
-from edu_service.knowledge.provider.provider import Provider, KnowledgeChunk
+from edu_service.knowledge.provider.provider import KnowledgeChunk, Provider
 from edu_service.task.action.customer.shared import (
     find_order_by_no,
     get_order_detail,
@@ -25,7 +25,11 @@ class ApiOrderProvider(Provider):
 
         detail = await get_order_detail(order_brief.get("orderId"), state) or {}
         text = json.dumps(detail, ensure_ascii=False, indent=2, default=str)
-        return [KnowledgeChunk(content=f"订单实时信息（订单号 {focused_object.id}）：\n{text}")]
+        return [
+            KnowledgeChunk(
+                content=f"订单实时信息（订单号 {focused_object.id}）：\n{text}"
+            )
+        ]
 
 
 class ApiCourseProvider(Provider):
@@ -42,8 +46,13 @@ class ApiCourseProvider(Provider):
         if detail is None:
             # 卡片 id 可能传的是课程名，兜底按关键词搜索
             from edu_service.task.action.customer.shared import search_series
+
             rows = await search_series(str(series_id), state)
-            detail = await get_series_detail(rows[0].get("seriesId"), state) if rows else None
+            detail = (
+                await get_series_detail(rows[0].get("seriesId"), state)
+                if rows
+                else None
+            )
         if detail is None:
             return [KnowledgeChunk(content=f"未查到课程 {series_id} 的信息")]
         cohorts = await get_series_cohorts(detail.get("seriesId"), state)

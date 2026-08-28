@@ -4,10 +4,10 @@
     uv run python scripts/smoke_dialogue.py            # 跑全部五场景 + 闲聊/SSE
     uv run python scripts/smoke_dialogue.py --step     # 单步模式：input("<sid>你说: ")
 """
+
 import argparse
 import json
 import sys
-import uuid
 
 import httpx
 
@@ -29,8 +29,13 @@ def show(resp_json: dict):
     state = resp_json.get("session_state") or {}
     active_task = state.get("active_task")
     if active_task:
-        slots = {k: (v[:40] + "…" if isinstance(v, str) and len(v) > 40 else v) for k, v in active_task["slots"].items()}
-        print(f"[状态] 流程={active_task['flow_id']} 步骤={active_task['step_id']} 槽位={slots}")
+        slots = {
+            k: (v[:40] + "…" if isinstance(v, str) and len(v) > 40 else v)
+            for k, v in active_task["slots"].items()
+        }
+        print(
+            f"[状态] 流程={active_task['flow_id']} 步骤={active_task['step_id']} 槽位={slots}"
+        )
     if state.get("paused_tasks"):
         print(f"[状态] 暂停栈={[t['flow_id'] for t in state['paused_tasks']]}")
 
@@ -48,7 +53,9 @@ def say(client: httpx.Client, sid: str, text: str, user_id: str = DEMO_USER_ID) 
 
 
 def send_object(client: httpx.Client, sid: str, object_payload: dict) -> dict:
-    print(f"\n[学员][发送卡片] type={object_payload['type']} title={object_payload['title']}")
+    print(
+        f"\n[学员][发送卡片] type={object_payload['type']} title={object_payload['title']}"
+    )
     response = client.post(
         f"{BASE}/api/chat",
         json={"sender_id": sid, "object": object_payload},
@@ -73,10 +80,10 @@ def stream_say(client: httpx.Client, sid: str, text: str, user_id: str = DEMO_US
             if not line:
                 continue
             if line.startswith("event: "):
-                event = line[len("event: "):]
+                event = line[len("event: ") :]
                 continue
             if line.startswith("data: ") and event:
-                data = json.loads(line[len("data: "):])
+                data = json.loads(line[len("data: ") :])
                 if event == "meta":
                     print("[SSE meta]")
                 elif event == "delta":
@@ -125,24 +132,31 @@ def scenario_ticket(client: httpx.Client, sid: str):
 
 def scenario_control(client: httpx.Client, sid: str):
     print("\n========== 场景6：任务中断/恢复/取消 + 对象消息 + 闲聊 + 澄清 ==========")
-    say(client, sid, "我要退款")           # 开启退费流程 → 追问订单号
-    say(client, sid, "帮我查一下订单状态")   # 中断退费，切到订单查询 → 应提示先暂存
-    say(client, sid, "继续刚才的退费")      # resume_flow
-    say(client, sid, "取消")               # cancel 当前流程
-    send_object(client, sid, {
-        "id": "ORD0000000672",
-        "type": "order",
-        "title": "订单 ORD0000000672",
-        "attributes": {"amount": 4999},
-    })
-    say(client, sid, "今天天气真不错啊")     # 闲聊兜底
-    say(client, sid, "你氪什么金啊咯咯哒呵呵") # 澄清
+    say(client, sid, "我要退款")  # 开启退费流程 → 追问订单号
+    say(client, sid, "帮我查一下订单状态")  # 中断退费，切到订单查询 → 应提示先暂存
+    say(client, sid, "继续刚才的退费")  # resume_flow
+    say(client, sid, "取消")  # cancel 当前流程
+    send_object(
+        client,
+        sid,
+        {
+            "id": "ORD0000000672",
+            "type": "order",
+            "title": "订单 ORD0000000672",
+            "attributes": {"amount": 4999},
+        },
+    )
+    say(client, sid, "今天天气真不错啊")  # 闲聊兜底
+    say(client, sid, "你氪什么金啊咯咯哒呵呵")  # 澄清
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scenario", default="all",
-                        help="all|course|order|progress|refund|ticket|control|stream")
+    parser.add_argument(
+        "--scenario",
+        default="all",
+        help="all|course|order|progress|refund|ticket|control|stream",
+    )
     args = parser.parse_args()
 
     with httpx.Client() as client:
@@ -156,7 +170,9 @@ def main():
             "refund": lambda sid: scenario_refund(client, sid),
             "ticket": lambda sid: scenario_ticket(client, sid),
             "control": lambda sid: scenario_control(client, sid),
-            "stream": lambda sid: stream_say(client, sid, "查一下我的订单 ORD0000000172"),
+            "stream": lambda sid: stream_say(
+                client, sid, "查一下我的订单 ORD0000000172"
+            ),
         }
 
         if args.scenario != "all":

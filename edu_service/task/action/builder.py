@@ -31,16 +31,19 @@ def registry_customer_action(action_runner: ActionRunner):
     Returns:
 
     """
-    customer_action_package = importlib.import_module("edu_service.task.action.customer")
+    customer_action_package = importlib.import_module(
+        "edu_service.task.action.customer"
+    )
 
-    for _, module_name, is_pkg in pkgutil.iter_modules(path=customer_action_package.__path__,
-                                                       prefix=f"{customer_action_package.__name__}."):
+    for _, module_name, is_pkg in pkgutil.iter_modules(
+        path=customer_action_package.__path__,
+        prefix=f"{customer_action_package.__name__}.",
+    ):
         if is_pkg:
             continue
         module = importlib.import_module(module_name)
 
         for _, class_obj in inspect.getmembers(module, inspect.isclass):
-
             if not issubclass(class_obj, Action) or class_obj is Action:
                 continue
 
@@ -56,5 +59,5 @@ def build_action_runner() -> ActionRunner:
     return action_runner
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     build_action_runner()

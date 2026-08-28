@@ -1,8 +1,9 @@
 """
 负责：从注册中心根据action的名字找具体的Action对象，在执行找到Action对象的run方法
 """
-from typing import Any
+
 from dataclasses import dataclass, field
+from typing import Any
 
 from edu_service.domain.state import DialogueState
 from edu_service.task.action.base import ActionResult
@@ -16,7 +17,6 @@ class ActionCall:
 
 
 class ActionRunner:
-
     def __init__(self, action_register: ActionRegister):
         self.action_register = action_register
 

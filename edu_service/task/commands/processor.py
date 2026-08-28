@@ -1,17 +1,26 @@
-from edu_service.domain.contexts import SystemTaskCanceledContext, TaskContext, SystemTaskInterruptedContext, \
-    SystemTaskStartedContext, SystemTaskResumeFailedContext, SystemTaskResumedContext
+from edu_service.domain.contexts import (
+    SystemTaskCanceledContext,
+    SystemTaskInterruptedContext,
+    SystemTaskResumedContext,
+    SystemTaskResumeFailedContext,
+    SystemTaskStartedContext,
+    TaskContext,
+)
 from edu_service.domain.state import DialogueState
-from edu_service.task.commands.command import Command, StartFlowCommand, SetSlotsCommand, ResumedFlowCommand, \
-    CancelFlowCommand
+from edu_service.task.commands.command import (
+    CancelFlowCommand,
+    Command,
+    ResumedFlowCommand,
+    SetSlotsCommand,
+    StartFlowCommand,
+)
 from edu_service.task.flows.flows import FlowList
 
 
 class CommandProcessor:
-
-    def process_command(self,
-                        commands: list[Command],
-                        state: DialogueState,
-                        flow_list: FlowList):
+    def process_command(
+        self, commands: list[Command], state: DialogueState, flow_list: FlowList
+    ):
         """
         职责：分别处理四种具体的命令
         Args:
@@ -35,10 +44,9 @@ class CommandProcessor:
             else:
                 pass
 
-    def _start_flow(self,
-                    command: StartFlowCommand,
-                    state: DialogueState,
-                    flow_list: FlowList):
+    def _start_flow(
+        self, command: StartFlowCommand, state: DialogueState, flow_list: FlowList
+    ):
         """
         职责：业务目标：开启"业务"流程。代码逻辑（激活）更新业务流程上下文以及（激活）系统流程上下文
         Args:
@@ -74,41 +82,36 @@ class CommandProcessor:
             state.interrupt_active_task()
 
             # d) 激活业务流程以及中断系统流程
-            state.start_task(TaskContext(
-                flow_id=start_flow_id,
-                step_id="start"
-            ))
+            state.start_task(TaskContext(flow_id=start_flow_id, step_id="start"))
 
-            state.start_system_task(SystemTaskInterruptedContext(
-                flow_id="system_task_interrupted",
-                step_id="start",
-                interrupted_flow_id=interrupted_flow_id,
-                interrupted_flow_name=interrupted_flow_name,
-                started_flow_id=start_flow_id,
-                started_flow_name=start_flow_name
-            ))
+            state.start_system_task(
+                SystemTaskInterruptedContext(
+                    flow_id="system_task_interrupted",
+                    step_id="start",
+                    interrupted_flow_id=interrupted_flow_id,
+                    interrupted_flow_name=interrupted_flow_name,
+                    started_flow_id=start_flow_id,
+                    started_flow_name=start_flow_name,
+                )
+            )
         else:
-
             # a) 从挂起栈中移除要开启的业务流程的流程ID(有就移除，没有就不管)
             state.remove_paused_tasks(start_flow_id)
 
             # b) 激活业务流程
-            state.start_task(TaskContext(
-                flow_id=start_flow_id,
-                step_id="start"
-            ))
+            state.start_task(TaskContext(flow_id=start_flow_id, step_id="start"))
 
             # c) 激活开启系统流程
-            state.start_system_task(SystemTaskStartedContext(
-                flow_id="system_task_started",
-                step_id="start",
-                started_flow_id=start_flow_id,
-                started_flow_name=start_flow_name
-            ))
+            state.start_system_task(
+                SystemTaskStartedContext(
+                    flow_id="system_task_started",
+                    step_id="start",
+                    started_flow_id=start_flow_id,
+                    started_flow_name=start_flow_name,
+                )
+            )
 
-    def _update_slots(self,
-                      command: SetSlotsCommand,
-                      state: DialogueState):
+    def _update_slots(self, command: SetSlotsCommand, state: DialogueState):
         """
         职责：业务目标：给业务流程的缺失的槽位补全信息 代码逻辑：修改状态
         Args:
@@ -120,10 +123,9 @@ class CommandProcessor:
         """
         state.set_slots(command.slots)
 
-    def _resumed_flow(self,
-                      command: ResumedFlowCommand,
-                      state: DialogueState,
-                      flow_list: FlowList):
+    def _resumed_flow(
+        self, command: ResumedFlowCommand, state: DialogueState, flow_list: FlowList
+    ):
         """
         职责： 业务目标：恢复"业务"流程  代码逻辑（激活）更新业务流程上下文以及（激活）系统流程上下文
         Args:
@@ -143,7 +145,6 @@ class CommandProcessor:
 
         # 3. 当前正在执行的业务流程存在
         if activate_task is not None:
-
             # 3.1 判断要恢复的业务流程的流程ID是否为空
             if resumed_flow_id is None:
                 return  # 保持当前状态
@@ -167,41 +168,49 @@ class CommandProcessor:
                 state.resume_task()
 
                 # b) 激活恢复失败的系统流程
-                state.start_system_task(SystemTaskResumeFailedContext(
-                    flow_id="system_task_resume_failed",
-                    step_id="start"
-                ))
+                state.start_system_task(
+                    SystemTaskResumeFailedContext(
+                        flow_id="system_task_resume_failed", step_id="start"
+                    )
+                )
             else:
                 # c) 激活中断系统流程
-                state.start_system_task(SystemTaskInterruptedContext(
-                    flow_id="system_task_interrupted",
-                    step_id="start",
-                    interrupted_flow_id=interrupted_flow_id,
-                    interrupted_flow_name=interrupted_flow_name,
-                    started_flow_id=state.active_task.flow_id,
-                    started_flow_name=flow_list.get_flow_by_id(state.active_task.flow_id).name
-                ))
+                state.start_system_task(
+                    SystemTaskInterruptedContext(
+                        flow_id="system_task_interrupted",
+                        step_id="start",
+                        interrupted_flow_id=interrupted_flow_id,
+                        interrupted_flow_name=interrupted_flow_name,
+                        started_flow_id=state.active_task.flow_id,
+                        started_flow_name=flow_list.get_flow_by_id(
+                            state.active_task.flow_id
+                        ).name,
+                    )
+                )
 
         else:
             resumed = state.resume_task(resumed_flow_id)
             if not resumed:
                 # a) 激活恢复失败的系统流程
-                state.start_system_task(SystemTaskResumeFailedContext(
-                    flow_id="system_task_resume_failed",
-                    step_id="start"
-                ))
+                state.start_system_task(
+                    SystemTaskResumeFailedContext(
+                        flow_id="system_task_resume_failed", step_id="start"
+                    )
+                )
             else:
                 # b) 激活恢复成功系统流程
-                state.start_system_task(SystemTaskResumedContext(
-                    flow_id="system_task_resumed",
-                    step_id="start",
-                    resumed_flow_id=state.active_task.flow_id,
-                    resumed_flow_name=flow_list.get_flow_by_id(state.active_task.flow_id).name
-                ))
+                state.start_system_task(
+                    SystemTaskResumedContext(
+                        flow_id="system_task_resumed",
+                        step_id="start",
+                        resumed_flow_id=state.active_task.flow_id,
+                        resumed_flow_name=flow_list.get_flow_by_id(
+                            state.active_task.flow_id
+                        ).name,
+                    )
+                )
 
-    def _cancel_flow(self,
-                     state: DialogueState,
-                     flow_list: FlowList):
+    def _cancel_flow(self, state: DialogueState, flow_list: FlowList):
         """
         职责： 业务目标：取消"业务"流程  代码逻辑（激活）更新业务流程上下文以及（激活）系统流程上下文
         Args:
@@ -222,9 +231,13 @@ class CommandProcessor:
         state.cancel_active_task()
 
         # 3. 激活取消系统流程(让用户看到取消系统流程的开场白)
-        state.start_system_task(SystemTaskCanceledContext(
-            flow_id="system_task_canceled",
-            step_id="start",
-            canceled_flow_id=activated_task.flow_id,
-            canceled_flow_name=flow_list.get_flow_by_id(activated_task.flow_id).name
-        ))
+        state.start_system_task(
+            SystemTaskCanceledContext(
+                flow_id="system_task_canceled",
+                step_id="start",
+                canceled_flow_id=activated_task.flow_id,
+                canceled_flow_name=flow_list.get_flow_by_id(
+                    activated_task.flow_id
+                ).name,
+            )
+        )

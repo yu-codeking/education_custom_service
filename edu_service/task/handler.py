@@ -8,21 +8,21 @@ from edu_service.task.flows.flows import FlowList
 
 
 class TaskHandler:
-
-    def __init__(self,
-                 flow_list: FlowList,
-                 command_processor: CommandProcessor,
-                 flow_executor: FlowExecutor,
-                 action_runner: ActionRunner
-                 ):
+    def __init__(
+        self,
+        flow_list: FlowList,
+        command_processor: CommandProcessor,
+        flow_executor: FlowExecutor,
+        action_runner: ActionRunner,
+    ):
         self.flow_list = flow_list
         self.command_processor = command_processor
         self.flow_executor = flow_executor
         self.action_runner = action_runner
 
-    async def handle(self,
-                     commands: list[Command],
-                     dialogue_state: DialogueState) -> list[BotMessage]:
+    async def handle(
+        self, commands: list[Command], dialogue_state: DialogueState
+    ) -> list[BotMessage]:
         """
         职责：业务流程处理器处理业务流程
         1. 使用CommandProcessor修改state中和流程任务相关的属性（改状态）
@@ -40,8 +40,7 @@ class TaskHandler:
 
         # 2. 读状态
         bot_messages = await self.flow_executor.execute_flow(
-            dialogue_state,
-            action_runner=self.action_runner,
-            flow_list=self.flow_list)
+            dialogue_state, action_runner=self.action_runner, flow_list=self.flow_list
+        )
 
         return bot_messages

@@ -1,11 +1,17 @@
 """
 定义步骤
 """
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from edu_service.task.flows.links import FlowStepLink, FlowStepStaticLink, FlowStepConditionLink, FlowStepFallbackLink
+from edu_service.task.flows.links import (
+    FlowStepConditionLink,
+    FlowStepFallbackLink,
+    FlowStepLink,
+    FlowStepStaticLink,
+)
 
 
 class FlowStepType(Enum):
@@ -36,11 +42,13 @@ class FlowStep:
 
     id: str  # 步骤ID
     type: FlowStepType  # 步骤类型
-    next: list[FlowStepLink]  # 步骤的边（用列表，不用字符串，因为可能会有条件边【多个条件】）
+    next: list[
+        FlowStepLink
+    ]  # 步骤的边（用列表，不用字符串，因为可能会有条件边【多个条件】）
 
     @staticmethod
     def from_dict(step_data: dict[str, Any]) -> "FlowStep":
-        type = step_data['type']
+        type = step_data["type"]
 
         clz = FLOW_STEP_TO_CLASS[type]
 
@@ -49,9 +57,9 @@ class FlowStep:
     @staticmethod
     def load_base_fields(step_data: dict[str, Any]) -> dict[str, Any]:
         return {
-            "id": step_data['id'],
-            "type": FlowStepType(step_data['type']),
-            "next": FlowStep.load_step_next(step_data['next'])
+            "id": step_data["id"],
+            "type": FlowStepType(step_data["type"]),
+            "next": FlowStep.load_step_next(step_data["next"]),
         }
 
     @staticmethod
@@ -62,31 +70,29 @@ class FlowStep:
         else:
             for link_dict in links:
                 if "if" in link_dict:
-                    loaded_links.append(FlowStepConditionLink(condition=link_dict['if'], target=link_dict['then']))
+                    loaded_links.append(
+                        FlowStepConditionLink(
+                            condition=link_dict["if"], target=link_dict["then"]
+                        )
+                    )
                 else:
-                    loaded_links.append(FlowStepFallbackLink(target=link_dict['else']))
+                    loaded_links.append(FlowStepFallbackLink(target=link_dict["else"]))
 
         return loaded_links
 
 
 @dataclass(slots=True)
 class StartFlowStep(FlowStep):
-
     @classmethod
     def from_dict(cls, step_dict: dict[str, Any]) -> "StartFlowStep":
-        return cls(
-            **FlowStep.load_base_fields(step_dict)
-        )
+        return cls(**FlowStep.load_base_fields(step_dict))
 
 
 @dataclass(slots=True)
 class EndFlowStep(FlowStep):
-
     @classmethod
     def from_dict(cls, step_dict: dict[str, Any]) -> "EndFlowStep":
-        return cls(
-            **FlowStep.load_base_fields(step_dict)
-        )
+        return cls(**FlowStep.load_base_fields(step_dict))
 
 
 @dataclass(slots=True)
@@ -98,8 +104,8 @@ class ActionFlowStep(FlowStep):
     def from_dict(cls, step_dict: dict[str, Any]) -> "ActionFlowStep":
         return cls(
             **FlowStep.load_base_fields(step_dict),
-            action=step_dict['action'],
-            args=step_dict.get('args', {})
+            action=step_dict["action"],
+            args=step_dict.get("args", {}),
         )
 
 
@@ -113,28 +119,32 @@ class CollectionFlowStep(FlowStep):
     def from_dict(cls, step_dict: dict[str, Any]) -> "CollectionFlowStep":
         return cls(
             **FlowStep.load_base_fields(step_dict),
-            slot_name=step_dict['slot_name'],
+            slot_name=step_dict["slot_name"],
             response=ResponseDefinition(
-                text=step_dict['response']['text'],
-                mode=step_dict['response'].get('mode', 'static'),
-                prompt=step_dict['response'].get('prompt')
+                text=step_dict["response"]["text"],
+                mode=step_dict["response"].get("mode", "static"),
+                prompt=step_dict["response"].get("prompt"),
             ),
             validated=Validated(
-                condition=step_dict['validated']['condition'],
+                condition=step_dict["validated"]["condition"],
                 failure_response=ResponseDefinition(
-                    text= step_dict['validated']['failure_response']['text'],
-                    mode=step_dict['validated']['failure_response'].get('mode', 'static'),
-                    prompt=step_dict['validated']['failure_response'].get('prompt')
-                ) if step_dict['validated'].get('failure_response') is not None else None
-            ) if step_dict.get('validated') is not None else None
-
+                    text=step_dict["validated"]["failure_response"]["text"],
+                    mode=step_dict["validated"]["failure_response"].get(
+                        "mode", "static"
+                    ),
+                    prompt=step_dict["validated"]["failure_response"].get("prompt"),
+                )
+                if step_dict["validated"].get("failure_response") is not None
+                else None,
+            )
+            if step_dict.get("validated") is not None
+            else None,
         )
 
-FLOW_STEP_TO_CLASS: dict[str, type[FlowStep]] = {
 
+FLOW_STEP_TO_CLASS: dict[str, type[FlowStep]] = {
     "start": StartFlowStep,
     "end": EndFlowStep,
     "action": ActionFlowStep,
-    "collect": CollectionFlowStep
+    "collect": CollectionFlowStep,
 }
-

@@ -22,7 +22,8 @@ FLOW_CONFIG_DIR = PROJECT_ROOT_DIR / "flow_config"
 def build_dialogue_engine():
     # 1. 加载流程
     flow_list = FlowLoader().load_multi_yaml(
-        [FLOW_CONFIG_DIR / yaml for yaml in ("system_flows.yml", "user_flows.yml")])
+        [FLOW_CONFIG_DIR / yaml for yaml in ("system_flows.yml", "user_flows.yml")]
+    )
 
     return DialogueEngine(
         turn_planner=TurnPlanner(),
@@ -32,10 +33,11 @@ def build_dialogue_engine():
             flow_list=flow_list,
             command_processor=CommandProcessor(),
             flow_executor=FlowExecutor(),
-            action_runner=build_action_runner()
+            action_runner=build_action_runner(),
         ),
         knowledge_handler=KnowledgeHandler(
             knowledge_intents=KNOWLEDGE_INTENTS,
-            knowledge_register=build_knowledge_register()),
-        chitchat_handler=ChitChatHandler()
+            knowledge_register=build_knowledge_register(),
+        ),
+        chitchat_handler=ChitChatHandler(),
     )

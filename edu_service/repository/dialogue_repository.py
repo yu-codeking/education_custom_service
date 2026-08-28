@@ -1,14 +1,14 @@
 import json
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from sqlalchemy import select
 from sqlalchemy.dialects.mysql import insert  # 注意mysql包
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from edu_service.domain.state import DialogueState
 from edu_service.repository.dialogue_record import DialogueRecord
 
 
 class DialogueRepository:
-
     def __init__(self, session: AsyncSession):
         self._session = session
 
@@ -39,9 +39,7 @@ class DialogueRepository:
 
         return DialogueState.from_dict(dialogue_record_dict)
 
-    async def save_state(self,
-                         sender_id: str,
-                         dialogue_state: DialogueState):
+    async def save_state(self, sender_id: str, dialogue_state: DialogueState):
         """
         职责：将引擎层修改后的对话状态保存到数据库中、
         如果用户之前不存在，调用save_state方法，像数据库中插入一条记录。
@@ -68,10 +66,14 @@ class DialogueRepository:
 
         # 2. 定义SQL语句
         # 2.1 定义INSERT的SQL语句
-        insert_stmt = insert(DialogueRecord).values(sender_id=sender_id, state_json=dialogue_state_str)
+        insert_stmt = insert(DialogueRecord).values(
+            sender_id=sender_id, state_json=dialogue_state_str
+        )
 
         # 2.2 定义UPDATE的SQL语句
-        update_stmt = insert_stmt.on_duplicate_key_update(state_json=insert_stmt.inserted.state_json)
+        update_stmt = insert_stmt.on_duplicate_key_update(
+            state_json=insert_stmt.inserted.state_json
+        )
 
         # 3. 执行SQL语句
         await self._session.execute(update_stmt)

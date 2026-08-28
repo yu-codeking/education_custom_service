@@ -17,6 +17,7 @@ from edu_service.infrastructure import http_client
 @dataclass(slots=True)
 class EduResult:
     """edu-api 调用结果的统一封装"""
+
     ok: bool
     code: str = ""
     message: str = ""
@@ -51,7 +52,9 @@ def _headers(state: DialogueState) -> dict[str, str]:
     return {"X-User-Id": user_id}
 
 
-async def _request(method: str, path: str, state: DialogueState, body: dict | None = None) -> EduResult:
+async def _request(
+    method: str, path: str, state: DialogueState, body: dict | None = None
+) -> EduResult:
     """
     职责：发送请求并做错误归一化（网络异常、HTTP 错误、业务错误码都转成 EduResult）
     """
@@ -60,7 +63,9 @@ async def _request(method: str, path: str, state: DialogueState, body: dict | No
         if method == "GET":
             response = await http_client.http_client.get(url, headers=_headers(state))
         else:
-            response = await http_client.http_client.post(url, headers=_headers(state), json=body)
+            response = await http_client.http_client.post(
+                url, headers=_headers(state), json=body
+            )
     except Exception:
         return EduResult(ok=False, code="NETWORK_ERROR", message="服务暂时不可用")
 
@@ -92,15 +97,22 @@ def _extract_list(result: EduResult) -> list[dict[str, Any]]:
         return [row for row in result.data if isinstance(row, dict)]
     page = result.data if isinstance(result.data, dict) else {}
     rows = page.get("list")
-    return [row for row in rows if isinstance(row, dict)] if isinstance(rows, list) else []
+    return (
+        [row for row in rows if isinstance(row, dict)] if isinstance(rows, list) else []
+    )
 
 
 #################### 课程域 ####################
 
+
 async def search_series(keyword: str, state: DialogueState) -> list[dict[str, Any]]:
     rows, page_no = [], 1
     while len(rows) == 0 and page_no <= 3:
-        result = await _request("GET", f"/series?keyword={quote(keyword)}&pageNo={page_no}&pageSize=20", state)
+        result = await _request(
+            "GET",
+            f"/series?keyword={quote(keyword)}&pageNo={page_no}&pageSize=20",
+            state,
+        )
         rows = _extract_list(result)
         page_no += 1
     return rows
@@ -111,14 +123,19 @@ async def get_series_detail(series_id: int | str, state: DialogueState) -> dict 
     return result.data if result.ok and isinstance(result.data, dict) else None
 
 
-async def get_series_cohorts(series_id: int | str, state: DialogueState) -> list[dict[str, Any]]:
+async def get_series_cohorts(
+    series_id: int | str, state: DialogueState
+) -> list[dict[str, Any]]:
     result = await _request("GET", f"/series/{series_id}/cohorts", state)
     return _extract_list(result)
 
 
 #################### 订单域 ####################
 
-async def list_my_orders(state: DialogueState, page_size: int = 50) -> list[dict[str, Any]]:
+
+async def list_my_orders(
+    state: DialogueState, page_size: int = 50
+) -> list[dict[str, Any]]:
     result = await _request("GET", f"/orders?pageNo=1&pageSize={page_size}", state)
     return _extract_list(result)
 
@@ -138,19 +155,26 @@ async def get_order_detail(order_id: int | str, state: DialogueState) -> dict | 
     return result.data if result.ok and isinstance(result.data, dict) else None
 
 
-async def get_order_items(order_id: int | str, state: DialogueState) -> list[dict[str, Any]]:
+async def get_order_items(
+    order_id: int | str, state: DialogueState
+) -> list[dict[str, Any]]:
     result = await _request("GET", f"/orders/{order_id}/items", state)
     return _extract_list(result)
 
 
 #################### 学习履约域 ####################
 
-async def list_my_cohorts(state: DialogueState, page_size: int = 50) -> list[dict[str, Any]]:
+
+async def list_my_cohorts(
+    state: DialogueState, page_size: int = 50
+) -> list[dict[str, Any]]:
     result = await _request("GET", f"/me/cohorts?pageNo=1&pageSize={page_size}", state)
     return _extract_list(result)
 
 
-async def find_cohort_by_name(cohort_name: str, state: DialogueState) -> tuple[dict | None, list[dict[str, Any]]]:
+async def find_cohort_by_name(
+    cohort_name: str, state: DialogueState
+) -> tuple[dict | None, list[dict[str, Any]]]:
     """班次名称模糊匹配：返回（最佳匹配, 我的全部报名），供未命中时给出候选提示"""
     cohorts = await list_my_cohorts(state)
     keyword = cohort_name.strip()
@@ -170,6 +194,7 @@ async def get_my_progress(cohort_id: int | str, state: DialogueState) -> dict | 
 
 
 #################### 用户档案域 ####################
+
 
 async def get_student_profile(state: DialogueState) -> dict | None:
     result = await _request("GET", "/me/student-profile", state)
@@ -194,22 +219,29 @@ def normalize_refund_type(text: str) -> str:
     return "personal_reason"
 
 
-async def create_refund_request(order_item_id: int | str,
-                                refund_type: str,
-                                refund_reason: str,
-                                apply_amount: float,
-                                state: DialogueState) -> EduResult:
+async def create_refund_request(
+    order_item_id: int | str,
+    refund_type: str,
+    refund_reason: str,
+    apply_amount: float,
+    state: DialogueState,
+) -> EduResult:
     body = {
         "refundType": refund_type,
         "refundReason": refund_reason,
         "applyAmount": round(float(apply_amount), 2),
     }
-    return await _request("POST", f"/order-items/{order_item_id}/refund-requests", state, body)
+    return await _request(
+        "POST", f"/order-items/{order_item_id}/refund-requests", state, body
+    )
 
 
 TICKET_TYPE_KEYWORDS = [
     ("complaint", ("投诉", "举报", "态度差", "不满")),
-    ("after_sales", ("售后", "视频", "卡顿", "加载", "播放", "不能看", "打不开", "故障", "异常")),
+    (
+        "after_sales",
+        ("售后", "视频", "卡顿", "加载", "播放", "不能看", "打不开", "故障", "异常"),
+    ),
 ]
 
 
@@ -229,14 +261,16 @@ async def find_latest_refund_request(state: DialogueState) -> dict | None:
     return rows[0] if rows else None
 
 
-async def create_service_ticket(ticket_type: str,
-                                title: str,
-                                ticket_content: str,
-                                student_id: int | str,
-                                order_item_id: int | str,
-                                priority_level: str = "medium",
-                                refund_request_id: int | str | None = None,
-                                state: DialogueState = None) -> EduResult:
+async def create_service_ticket(
+    ticket_type: str,
+    title: str,
+    ticket_content: str,
+    student_id: int | str,
+    order_item_id: int | str,
+    priority_level: str = "medium",
+    refund_request_id: int | str | None = None,
+    state: DialogueState = None,
+) -> EduResult:
     body: dict[str, Any] = {
         "ticketType": ticket_type,
         "priorityLevel": priority_level,
@@ -252,6 +286,7 @@ async def create_service_ticket(ticket_type: str,
 
 
 #################### 文案工具 ####################
+
 
 def delivery_mode_name(code: Any) -> str:
     return DELIVERY_MODE_NAMES.get(str(code), "线上")

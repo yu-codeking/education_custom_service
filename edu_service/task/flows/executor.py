@@ -3,19 +3,26 @@ from dataclasses import asdict
 from edu_service.domain.contexts import SystemCollectInformationContext
 from edu_service.domain.messages import BotMessage
 from edu_service.domain.state import DialogueState
-from edu_service.task.action.runner import ActionRunner, ActionCall
+from edu_service.task.action.runner import ActionCall, ActionRunner
 from edu_service.task.flows.flows import FlowList
-from edu_service.task.flows.links import FlowStepStaticLink, FlowStepConditionLink, FlowStepFallbackLink
-from edu_service.task.flows.steps import FlowStep, StartFlowStep, EndFlowStep, ActionFlowStep, CollectionFlowStep
+from edu_service.task.flows.links import (
+    FlowStepConditionLink,
+    FlowStepFallbackLink,
+    FlowStepStaticLink,
+)
+from edu_service.task.flows.steps import (
+    ActionFlowStep,
+    CollectionFlowStep,
+    EndFlowStep,
+    FlowStep,
+    StartFlowStep,
+)
 
 
 class FlowExecutor:
-
-    async def execute_flow(self,
-                           state: DialogueState,
-                           *,
-                           action_runner: ActionRunner,
-                           flow_list: FlowList) -> list[BotMessage]:
+    async def execute_flow(
+        self, state: DialogueState, *, action_runner: ActionRunner, flow_list: FlowList
+    ) -> list[BotMessage]:
         """
         职责：推进两份YAML中流程。目标：推进业务流程【顺便推进系统流程】
         两层循环：
@@ -39,7 +46,6 @@ class FlowExecutor:
 
         final_response_messages: list[BotMessage] = []
         while True:
-
             # 1. 找流程步骤是Action
             action_call = self._advance_flow_util_action(state, flow_list)
 
@@ -54,9 +60,9 @@ class FlowExecutor:
 
         return final_response_messages
 
-    def _advance_flow_util_action(self,
-                                  state: DialogueState,
-                                  flow_list: FlowList) -> ActionCall:
+    def _advance_flow_util_action(
+        self, state: DialogueState, flow_list: FlowList
+    ) -> ActionCall:
         """
         职责：推进流程并且在推进流程期间找步骤类型是action
         如果执行流程期间步骤类型不是action,继续执行下一步流程（继续推进流程）
@@ -93,9 +99,7 @@ class FlowExecutor:
             if action_call is not None:
                 return action_call
 
-    def _run_step(self,
-                  step: FlowStep,
-                  state: DialogueState) -> ActionCall | None:
+    def _run_step(self, step: FlowStep, state: DialogueState) -> ActionCall | None:
         """
         职责：运行步骤
         Args:
@@ -118,9 +122,7 @@ class FlowExecutor:
         else:
             return None
 
-    def _run_start_step(self,
-                        step: StartFlowStep,
-                        state: DialogueState) -> None:
+    def _run_start_step(self, step: StartFlowStep, state: DialogueState) -> None:
         """
         职责：运行步骤类型是start，什么都不用干，找到下一个步骤ID,更新到state中的流程上下文中
         Args:
@@ -135,11 +137,8 @@ class FlowExecutor:
         self._advance_next_step(step, state)
 
         # 2. 返回None
-        return None
 
-    def _advance_next_step(self,
-                           step: FlowStep,
-                           state: DialogueState):
+    def _advance_next_step(self, step: FlowStep, state: DialogueState):
 
         # 1. 找step_id
         next_step_id = self._find_next_step_id(step, state)
@@ -147,9 +146,7 @@ class FlowExecutor:
         # 2. 更新step_id
         state.current_task().step_id = next_step_id
 
-    def _find_next_step_id(self,
-                           step: FlowStep,
-                           state: DialogueState) -> str:
+    def _find_next_step_id(self, step: FlowStep, state: DialogueState) -> str:
 
         for link in step.next:
             if isinstance(link, FlowStepStaticLink):
@@ -163,9 +160,7 @@ class FlowExecutor:
 
         return ""
 
-    def _eval_condition(self,
-                        condition_expr: str,
-                        state: DialogueState) -> bool:
+    def _eval_condition(self, condition_expr: str, state: DialogueState) -> bool:
         """
         condition_expr="context.get('reason') == 'clarification_rejected'"
         Args:
@@ -179,14 +174,15 @@ class FlowExecutor:
         """
 
         data = {
-            "context": asdict(state.active_system_task) if state.active_system_task is not None else {},
-            "slots": state.active_task.slots if state.active_task is not None else {}
+            "context": asdict(state.active_system_task)
+            if state.active_system_task is not None
+            else {},
+            "slots": state.active_task.slots if state.active_task is not None else {},
         }
 
         return eval(condition_expr, {}, data)
 
-    def _run_end_step(self,
-                      state: DialogueState) -> None:
+    def _run_end_step(self, state: DialogueState) -> None:
         """
         职责： 清空对应的流程上下文
         特点：不需要调用_advance_next_step方法
@@ -205,11 +201,10 @@ class FlowExecutor:
         else:
             pass
 
-        return None
 
-    def _run_action_step(self,
-                         step: ActionFlowStep,
-                         state: DialogueState) -> ActionCall:
+    def _run_action_step(
+        self, step: ActionFlowStep, state: DialogueState
+    ) -> ActionCall:
         """
         职责：构建ActionCall对象返回
         特点：需要调用_advance_next_step方法
@@ -229,13 +224,13 @@ class FlowExecutor:
 
         if isinstance(action_kwargs, str):
             # system_collect_information系统流程 args: context.response 转成字典（dict） 归一化思想
-            action_kwargs = asdict(state.active_system_task)['response']
+            action_kwargs = asdict(state.active_system_task)["response"]
 
         return ActionCall(action_name=step.action, action_kwargs=action_kwargs)
 
-    def run_collection_step(self,
-                            step: CollectionFlowStep,
-                            state: DialogueState) -> ActionCall | None:
+    def run_collection_step(
+        self, step: CollectionFlowStep, state: DialogueState
+    ) -> ActionCall | None:
         """
         职责：让用户填写业务流程缺少的槽位信息
         特点①：
@@ -257,7 +252,9 @@ class FlowExecutor:
         if state.active_task.slots.get(step.slot_name):
             # 第二次： 校验用户填写的槽位信息
             if step.validated:
-                if self._eval_condition(condition_expr=step.validated.condition, state=state):
+                if self._eval_condition(
+                    condition_expr=step.validated.condition, state=state
+                ):
                     self._advance_next_step(step, state)  # 推进下一步
                     return None  # 返回None
                 else:
@@ -266,22 +263,29 @@ class FlowExecutor:
 
                     # b) 给错误响应
                     if step.validated.failure_response:
-                        return ActionCall(action_name="action_response",
-                                          action_kwargs=asdict(step.validated.failure_response))
+                        return ActionCall(
+                            action_name="action_response",
+                            action_kwargs=asdict(step.validated.failure_response),
+                        )
                     else:
-                        return ActionCall(action_name="action_response",
-                                          action_kwargs={"text": "你填写的槽位信息有误不合法，请重新填写"})
+                        return ActionCall(
+                            action_name="action_response",
+                            action_kwargs={
+                                "text": "你填写的槽位信息有误不合法，请重新填写"
+                            },
+                        )
 
             else:
                 self._advance_next_step(step, state)  # 推进下一步
                 return None  # 返回None
         else:
             # 第一次 让用户填写槽位信息 激活system_collect_information系统流程
-            state.start_system_task(SystemCollectInformationContext(
-                flow_id="system_collect_information",
-                step_id="start",
-                response=asdict(step.response),
-                slot_name=step.slot_name
-            ))
+            state.start_system_task(
+                SystemCollectInformationContext(
+                    flow_id="system_collect_information",
+                    step_id="start",
+                    response=asdict(step.response),
+                    slot_name=step.slot_name,
+                )
+            )
             return None
-

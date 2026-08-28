@@ -1,11 +1,15 @@
 """
 定义FastAPI实例
 """
+
 from fastapi import FastAPI
 
 from edu_service.api.chat_router import router
-from edu_service.infrastructure.db_client import init_db_engine, dispose_engine
-from edu_service.infrastructure.http_client import init_http_client, disposed_http_client
+from edu_service.infrastructure.db_client import dispose_engine, init_db_engine
+from edu_service.infrastructure.http_client import (
+    disposed_http_client,
+    init_http_client,
+)
 
 
 async def lifespan(_: FastAPI):

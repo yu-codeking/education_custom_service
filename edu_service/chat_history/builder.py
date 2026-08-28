@@ -1,9 +1,13 @@
-from edu_service.domain.messages import UserMessage, BotMessage, MessageType, FocusedObject
+from edu_service.domain.messages import (
+    BotMessage,
+    FocusedObject,
+    MessageType,
+    UserMessage,
+)
 from edu_service.domain.state import Turn
 
 
 class ChatHistoryBuilder:
-
     @staticmethod
     def build(turns: list[Turn]) -> str:
         """
@@ -32,17 +36,18 @@ class ChatHistoryBuilder:
     def build_user_message_str(cls, user_message: UserMessage) -> str:
 
         if user_message.type is MessageType.TEXT:
+            assert user_message.text is not None
             return cls._render_text_message(user_message.text)
-
+            
+        assert user_message.object is not None
         return cls._render_object_message(user_message.object)
 
     @classmethod
     def build_bot_message_str(cls, bot_message: BotMessage) -> str:
-        if  bot_message.object is not None:
-            return  cls._render_object_message(bot_message.object)
+        if bot_message.object is not None:
+            return cls._render_object_message(bot_message.object)
 
-        return  cls._render_text_message(bot_message.text)
-
+        return cls._render_text_message(bot_message.text)
 
     @classmethod
     def _render_text_message(cls, text: str) -> str:
@@ -59,5 +64,6 @@ class ChatHistoryBuilder:
         # k=v
         attributes_str = " ".join([f"{k}={v}" for k, v in object.attributes.items()])
 
-        return  f"【id={id} | label={label} | title={title} | attributes={attributes_str}】"
-
+        return (
+            f"【id={id} | label={label} | title={title} | attributes={attributes_str}】"
+        )

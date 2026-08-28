@@ -4,10 +4,9 @@ from edu_service.domain.state import DialogueState
 
 
 class ChitChatHandler:
-
-    async def handle(self,
-                     chat: str,
-                     dialogue_state: DialogueState) -> list[BotMessage]:
+    async def handle(
+        self, chat: str, dialogue_state: DialogueState
+    ) -> list[BotMessage]:
         """
         职责：闲聊兜底轨道处理器——交给闲聊响应器生成自然的闲聊回复
         """

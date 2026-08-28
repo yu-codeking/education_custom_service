@@ -1,18 +1,30 @@
 from edu_service.domain.state import DialogueState
 from edu_service.knowledge.intents import KnowledgeIntent
-from edu_service.plan.turn_plan import TurnPlan, TurnPlanValidatedResult, ClarifyReason, TaskTurnPlan, KnowledgeTurnPlan
+from edu_service.plan.turn_plan import (
+    ClarifyReason,
+    KnowledgeTurnPlan,
+    TaskTurnPlan,
+    TurnPlan,
+    TurnPlanValidatedResult,
+)
+from edu_service.task.commands.command import (
+    CancelFlowCommand,
+    ResumedFlowCommand,
+    SetSlotsCommand,
+    StartFlowCommand,
+)
 from edu_service.task.flows.flows import FlowList
-from edu_service.task.commands.command import StartFlowCommand, SetSlotsCommand, CancelFlowCommand, ResumedFlowCommand
 
 
 class TurnPlanValidator:
-    def valid(self,
-              turn_plan: TurnPlan,
-              dialogue_state: DialogueState,
-              *,
-              flow_list: FlowList,
-              knowledge_intents: dict[str, KnowledgeIntent]
-              ) -> TurnPlanValidatedResult:
+    def valid(
+        self,
+        turn_plan: TurnPlan,
+        dialogue_state: DialogueState,
+        *,
+        flow_list: FlowList,
+        knowledge_intents: dict[str, KnowledgeIntent],
+    ) -> TurnPlanValidatedResult:
         """
         职责：对轮次规划后的结果校验
         1.校验轨道数（命中了几条轨道：外部校验）
@@ -45,7 +57,9 @@ class TurnPlanValidator:
 
         # 4.2 进入到knowledge轨道校验
         if selected_tracks == "knowledge":
-            return self._validate_knowledge_track(turn_plan.knowledge, dialogue_state, knowledge_intents)
+            return self._validate_knowledge_track(
+                turn_plan.knowledge, dialogue_state, knowledge_intents
+            )
 
         # 4.3 闲聊轨道不校验(不校验)
         return TurnPlanValidatedResult(valid=True)
@@ -53,9 +67,9 @@ class TurnPlanValidator:
     def _reject(self, reason: ClarifyReason) -> TurnPlanValidatedResult:
         return TurnPlanValidatedResult(valid=False, reason=reason)
 
-    def _validate_task_track(self,
-                             task: TaskTurnPlan,
-                             flow_list: FlowList) -> TurnPlanValidatedResult:
+    def _validate_task_track(
+        self, task: TaskTurnPlan, flow_list: FlowList
+    ) -> TurnPlanValidatedResult:
         """
         职责：校验task轨道
         校验1：task轨道是否有对应的命令（commands）
@@ -77,12 +91,21 @@ class TurnPlanValidator:
             return self._reject(ClarifyReason.MISSING_TASK_COMMANDS)
 
         # 2. 命令(command)是否合法(简单判断)
-        allowed_commands = (StartFlowCommand, SetSlotsCommand, CancelFlowCommand, ResumedFlowCommand)
+        allowed_commands = (
+            StartFlowCommand,
+            SetSlotsCommand,
+            CancelFlowCommand,
+            ResumedFlowCommand,
+        )
         if not all(isinstance(command, allowed_commands) for command in task.commands):
             return self._reject(ClarifyReason.INVALID_TASK_COMMANDS)
 
         # 3. 是否有多个开启command（校验）
-        start_command = [command for command in task.commands if isinstance(command, StartFlowCommand)]
+        start_command = [
+            command
+            for command in task.commands
+            if isinstance(command, StartFlowCommand)
+        ]
         if len(start_command) > 1:
             return self._reject(ClarifyReason.MULTIPLE_TASK_FLOWS)
 
@@ -95,11 +118,12 @@ class TurnPlanValidator:
         # 4. 通过(给业务流程设置槽位命令、取消业务流程命令、恢复业务流程命令)
         return TurnPlanValidatedResult(valid=True)
 
-    def _validate_knowledge_track(self,
-                                  knowledge: KnowledgeTurnPlan,
-                                  dialogue_state: DialogueState,
-                                  knowledge_intents: dict[str, KnowledgeIntent]) -> TurnPlanValidatedResult:
-
+    def _validate_knowledge_track(
+        self,
+        knowledge: KnowledgeTurnPlan,
+        dialogue_state: DialogueState,
+        knowledge_intents: dict[str, KnowledgeIntent],
+    ) -> TurnPlanValidatedResult:
         """
         职责：校验knowledge轨道
         校验:接口提供者【api.order/api.product】意图对象是否填写对应的卡片对象
@@ -123,10 +147,7 @@ class TurnPlanValidator:
 
             focused_object = dialogue_state.focused_object
             if require_type is not None:
-                if  focused_object is None or focused_object.type!= require_type:
+                if focused_object is None or focused_object.type != require_type:
                     return self._reject(ClarifyReason.MISSING_FOCUSED_OBJECT)
 
-
-        return    TurnPlanValidatedResult(valid=True)
-
-
+        return TurnPlanValidatedResult(valid=True)

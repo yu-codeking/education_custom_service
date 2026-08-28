@@ -1,12 +1,13 @@
-from sqlalchemy.orm import Mapped,mapped_column
-from  edu_service.repository.base import  Base
-from sqlalchemy import  TEXT
+from sqlalchemy import TEXT
+from sqlalchemy.orm import Mapped, mapped_column
+
+from edu_service.repository.base import Base
+
 
 class DialogueRecord(Base):
     __tablename__ = "dialogue_states"
 
-    sender_id:Mapped[str]=mapped_column(primary_key=True)        # Mapped:可以在ide中进行类型提示和自动补全，类型推断：自动推断数据库对应列的类型
-    state_json:Mapped[str]=mapped_column(TEXT,nullable=False,default="{}")
-
-
-
+    sender_id: Mapped[str] = mapped_column(
+        primary_key=True
+    )  # Mapped:可以在ide中进行类型提示和自动补全，类型推断：自动推断数据库对应列的类型
+    state_json: Mapped[str] = mapped_column(TEXT, nullable=False, default="{}")

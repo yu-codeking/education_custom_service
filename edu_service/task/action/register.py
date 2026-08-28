@@ -1,11 +1,11 @@
 """
 提供注册能力：将五个子Action管理起来
 """
+
 from edu_service.task.action.base import Action
 
 
 class ActionRegister:
-
     def __init__(self):
         self.actions: dict[str, Action] = {}
 
